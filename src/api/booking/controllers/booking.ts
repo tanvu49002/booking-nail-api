@@ -21,13 +21,35 @@ export default factories.createCoreController(
             data: { ...customerData, publishedAt: new Date() },
           });
         }
+        let bookingCode = "";
+        let isUnique = false;
 
+        while (!isUnique) {
+          const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+          let randomPart = "";
+          for (let i = 0; i < 6; i++) {
+            randomPart += characters.charAt(
+              Math.floor(Math.random() * characters.length)
+            );
+          }
+          bookingCode = `BK-${randomPart}`;
+          const existingBooking = await strapi.db
+            .query("api::booking.booking")
+            .findOne({
+              where: { booking_code: bookingCode },
+            });
+
+          if (!existingBooking) {
+            isUnique = true;
+          }
+        }
         const newBooking = await strapi.service("api::booking.booking").create({
           data: {
             ...bookingData,
             customer: customer.id,
             employee: employeeId,
             services: serviceId,
+            booking_code: bookingCode,
             publishedAt: new Date(),
           },
         });
