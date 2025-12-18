@@ -9,18 +9,55 @@ export default factories.createCoreController(
   ({ strapi }) => ({
     async createWithCustomer(ctx) {
       const { data } = ctx.request.body;
-      const { customerData, bookingData, employeeId, serviceId } = data;
+      const {
+        customerName,
+        customerPhone,
+        customerEmail,
+        bookingDate,
+        bookingTime,
+        bookingNote,
+        employeeId,
+        serviceId,
+      } = data;
 
       try {
         let customer = await strapi.db.query("api::customer.customer").findOne({
-          where: { customer_phone: customerData.phone },
+          where: { customer_phone: customerPhone },
         });
 
         if (!customer) {
           customer = await strapi.db.query("api::customer.customer").create({
-            data: { ...customerData, publishedAt: new Date() },
+            data: {
+              customer_name: customerName,
+              customer_phone: customerPhone,
+              customer_email: customerEmail,
+              publishedAt: new Date(),
+            },
           });
         }
+        const services = await strapi.db
+          .query("api::service.service")
+          .findMany({
+            where: { id: { $in: serviceId } },
+          });
+
+        if (!services || services.length === 0) {
+          return ctx.badRequest("Service not found!");
+        }
+
+        // Cộng dồn tất cả working_time (phút)
+        const totalWorkingTime = services.reduce((total, s) => {
+          return total + (Number(s.working_time) || 0);
+        }, 0);
+
+        // 3. Tính toán booking_end
+        const startTime = new Date(`${bookingDate}T${bookingTime}`);
+        const endTime = new Date(
+          startTime.getTime() + totalWorkingTime * 60000
+        );
+
+        // Chuyển định dạng về HH:mm:ss
+        const bookingEnd = endTime.toTimeString().split(" ")[0];
         let bookingCode = "";
         let isUnique = false;
 
@@ -45,7 +82,10 @@ export default factories.createCoreController(
         }
         const newBooking = await strapi.service("api::booking.booking").create({
           data: {
-            ...bookingData,
+            booking_date: bookingDate,
+            booking_time: bookingTime,
+            booking_end: bookingEnd,
+            note: bookingNote,
             customer: customer.id,
             employee: employeeId,
             services: serviceId,
