@@ -1,0 +1,67 @@
+{
+  "kind": "collectionType",
+  "collectionName": "bookings",
+  "info": {
+    "singularName": "booking",
+    "pluralName": "bookings",
+    "displayName": "Booking"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "name": {
+      "type": "string"
+    },
+    "email": {
+      "type": "email"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "services": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::service.service",
+      "mappedBy": "bookings"
+    },
+    "employee": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::employee.employee",
+      "inversedBy": "bookings"
+    },
+    "booking_date": {
+      "type": "date"
+    },
+    "booking_time": {
+      "type": "time"
+    },
+    "booking_end": {
+      "type": "time"
+    },
+    "note": {
+      "type": "text"
+    },
+    "booking_status": {
+      "type": "enumeration",
+      "enum": [
+        "waiting_approve",
+        "approved",
+        "reject",
+        "complete"
+      ]
+    },
+    "booking_code": {
+      "type": "uid",
+      "targetField": "name"
+    },
+    "customer": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::customer.customer",
+      "inversedBy": "bookings"
+    }
+  }
+}

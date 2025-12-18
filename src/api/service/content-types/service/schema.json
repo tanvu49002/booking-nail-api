@@ -1,0 +1,30 @@
+{
+  "kind": "collectionType",
+  "collectionName": "services",
+  "info": {
+    "singularName": "service",
+    "pluralName": "services",
+    "displayName": "Service"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "bookings": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::booking.booking",
+      "inversedBy": "services"
+    },
+    "service_name": {
+      "type": "string"
+    },
+    "service_price": {
+      "type": "integer"
+    },
+    "working_time": {
+      "type": "integer"
+    }
+  }
+}
