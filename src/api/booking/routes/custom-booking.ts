@@ -3,10 +3,11 @@ module.exports = {
     {
       method: "POST",
       path: "/bookings/create-with-customer",
-      handler: "booking.createWithCustomer",
+      handler: "api::booking.booking.createWithCustomer",
       config: {
         policies: [],
         middlewares: [],
+        auth: false,
       },
     },
   ],

@@ -9,6 +9,8 @@ export default factories.createCoreController(
   ({ strapi }) => ({
     async createWithCustomer(ctx) {
       const { data } = ctx.request.body;
+      // console.log("data:", data);
+
       const {
         customerName,
         customerPhone,
@@ -19,27 +21,36 @@ export default factories.createCoreController(
         employeeId,
         serviceId,
       } = data;
-
       try {
-        let customer = await strapi.db.query("api::customer.customer").findOne({
-          where: { customer_phone: customerPhone },
-        });
-
+        let customer = await strapi
+          .documents("api::customer.customer")
+          .findFirst({
+            filters: { customer_phone: customerPhone },
+            status: "published",
+          });
         if (!customer) {
-          customer = await strapi.db.query("api::customer.customer").create({
+          console.log("Customer not found, creating new one...");
+          customer = await strapi.documents("api::customer.customer").create({
             data: {
               customer_name: customerName,
               customer_phone: customerPhone,
               customer_email: customerEmail,
-              publishedAt: new Date(),
             },
+            status: "published",
           });
         }
-        const services = await strapi.db
-          .query("api::service.service")
+        // console.log("customer: ", customer);
+
+        const services = await strapi
+          .documents("api::service.service")
           .findMany({
-            where: { id: { $in: serviceId } },
+            filters: {
+              documentId: {
+                $in: serviceId,
+              },
+            },
           });
+        // console.log("Services:", services);
 
         if (!services || services.length === 0) {
           return ctx.badRequest("Service not found!");
@@ -58,6 +69,7 @@ export default factories.createCoreController(
 
         // Chuyển định dạng về HH:mm:ss
         const bookingEnd = endTime.toTimeString().split(" ")[0];
+        // console.log("Booking end time:", bookingEnd);
         let bookingCode = "";
         let isUnique = false;
 
@@ -70,37 +82,45 @@ export default factories.createCoreController(
             );
           }
           bookingCode = `BK-${randomPart}`;
-          const existingBooking = await strapi.db
-            .query("api::booking.booking")
-            .findOne({
-              where: { booking_code: bookingCode },
+          //check trùng
+          const existingBooking = await strapi
+            .documents("api::booking.booking")
+            .findFirst({
+              filters: { booking_code: bookingCode },
             });
 
           if (!existingBooking) {
             isUnique = true;
           }
         }
-        const newBooking = await strapi.service("api::booking.booking").create({
-          data: {
-            booking_date: bookingDate,
-            booking_time: bookingTime,
-            booking_end: bookingEnd,
-            note: bookingNote,
-            customer: customer.id,
-            employee: employeeId,
-            services: serviceId,
-            booking_code: bookingCode,
-            publishedAt: new Date(),
-          },
-        });
+        const newBooking = await strapi
+          .documents("api::booking.booking")
+          .create({
+            data: {
+              name: customer.customer_name,
+              email: customer.customer_email,
+              phone: customer.customer_phone,
+              booking_date: bookingDate,
+              booking_time: bookingTime,
+              booking_end: bookingEnd,
+              note: bookingNote || "",
+              customer: customer.documentId,
+              booking_status: "waiting_approve",
+              employee: employeeId,
+              services: serviceId,
+              booking_code: bookingCode,
+            },
+            status: "published",
+          });
+        // console.log("New Booking:", newBooking);
 
         return ctx.send({
           message: "Booking created successfully !",
           booking: newBooking,
         });
       } catch (err) {
-        strapi.log.error(err);
-        return ctx.internalServerError("Create booking failed !");
+        console.error("Error creating booking:", err);
+        return ctx.internalServerError(`Create booking failed: ${err.message}`);
       }
     },
   })
